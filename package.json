@@ -1,0 +1,45 @@
+{
+  "name": "windspace-monorepo",
+  "version": "1.0.0",
+  "description": "Thai Blog Monorepo with Vite React Frontend and Express.js API Backend",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
+    "client:dev": "cd client && npm run dev",
+    "client:build": "cd client && npm run build",
+    "client:preview": "cd client && npm run preview",
+    "server:dev": "cd server && npm run dev",
+    "server:build": "cd server && npm run build",
+    "server:start": "cd server && npm run start",
+    "setup": "npm run install:client && npm run install:server",
+    "install:client": "cd client && npm install",
+    "install:server": "cd server && npm install",
+    "clean": "concurrently \"cd client && rm -rf node_modules\" \"cd server && rm -rf node_modules\"",
+    "clean:dist": "concurrently \"cd client && rm -rf dist\" \"cd server && rm -rf dist\""
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/windme2/windspace.git"
+  },
+  "keywords": [
+    "react",
+    "vite",
+    "supabase",
+    "express",
+    "blog",
+    "thai",
+    "monorepo"
+  ],
+  "author": "Intouch Charoenphon",
+  "license": "MIT"
+}
