@@ -1,0 +1,45 @@
+{
+  "name": "windspace-server",
+  "version": "1.0.0",
+  "description": "Express.js API server for Windspace Thai Blog",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "build:clean": "tsc --build --clean",
+    "type-check": "tsc --noEmit",
+    "lint": "echo \"Add ESLint if needed\"",
+    "test": "echo \"Add tests if needed\""
+  },
+  "keywords": [
+    "express",
+    "typescript",
+    "api",
+    "blog",
+    "thai"
+  ],
+  "author": "Windspace Team",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "helmet": "^6.2.0",
+    "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.3.1",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
