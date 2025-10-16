@@ -171,7 +171,7 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({ articles }) => {
                     currentSlide === index ? "opacity-100" : "opacity-0"
                   }`}
                 >
-                  <div className="container mx-auto px-4 pb-16 md:pb-24">
+                  <div className="container mx-auto px-4 pb-20 md:pb-24">
                     <Badge
                       className={`mb-4 ${getCategoryClass(
                         article.category

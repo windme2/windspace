@@ -166,7 +166,7 @@ const Navbar = () => {
               variant="ghost"
               size="icon"
               onClick={toggleMenu}
-              className="md:hidden ml-2"
+              className="md:hidden ml-2 mr-2"
             >
               {isMenuOpen ? (
                 <X className="h-5 w-5" />
@@ -240,16 +240,6 @@ const Navbar = () => {
                 }}
               >
                 Contact
-              </Link>
-              <Link
-                to="/admin"
-                className="py-2 px-4 hover:bg-gray-50 rounded-lg font-medium hover:text-orange-600"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  handleNavClick();
-                }}
-              >
-                Admin Panel
               </Link>
             </div>
           </div>
