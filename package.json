@@ -8,21 +8,29 @@
     "client:dev": "cd client && npm run dev",
     "client:build": "cd client && npm run build",
     "client:preview": "cd client && npm run preview",
+    "client:test": "cd client && npm run test",
     "server:dev": "cd server && npm run dev",
     "server:build": "cd server && npm run build",
     "server:start": "cd server && npm run start",
-    "setup": "npm run install:client && npm run install:server",
+    "server:test": "cd server && npm run test",
+    "setup": "npm install && npm run install:client && npm run install:server",
     "install:client": "cd client && npm install",
     "install:server": "cd server && npm install",
-    "clean": "concurrently \"cd client && rm -rf node_modules\" \"cd server && rm -rf node_modules\"",
-    "clean:dist": "concurrently \"cd client && rm -rf dist\" \"cd server && rm -rf dist\""
+    "clean": "node -e \"require('child_process').execSync('powershell -File clean.ps1', {stdio:'inherit'})\"",
+    "clean:modules": "rimraf node_modules client/node_modules server/node_modules",
+    "clean:dist": "rimraf client/dist server/dist",
+    "clean:cache": "rimraf .vite client/.vite .cache .temp .tmp coverage client/coverage server/coverage",
+    "clean:all": "npm run clean:modules && npm run clean:dist && npm run clean:cache",
+    "build": "npm run client:build && npm run server:build",
+    "test": "npm run client:test && npm run server:test"
   },
   "workspaces": [
     "client",
     "server"
   ],
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.10"
   },
   "engines": {
     "node": ">=18.0.0"

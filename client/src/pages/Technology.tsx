@@ -236,8 +236,8 @@ const Technology = () => {
 
                   <div className="text-center mt-4 text-sm text-gray-600">
                     Page {currentPage} of{" "}
-                    {Math.ceil(totalArticles / articlesPerPage)} ({totalArticles}{" "} 
-                    total articles)
+                    {Math.ceil(totalArticles / articlesPerPage)} (
+                    {totalArticles} total articles)
                   </div>
                 </AnimatedSection>
               )}

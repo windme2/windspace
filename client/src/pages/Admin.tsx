@@ -17,11 +17,19 @@ import {
   Edit,
   Lock,
   Shield,
+  BarChart3,
+  MessageSquare,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import { Article, Category } from "../types";
-import { articleAPI, ArticleData, PaginatedResponse } from "../utils/apiUtils";
+import { articleAPI, ArticleData, PaginatedResponse, setAuthToken, clearAuthToken } from "../utils/apiUtils";
+import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import CommentModeration from "@/components/CommentModeration";
+
+// Storage keys for remember me
+const AUTH_TOKEN_KEY = "windspace_auth_token";
+const AUTH_REMEMBER_KEY = "windspace_remember";
 
 interface LocalArticle
   extends Omit<Article, "id" | "category_id" | "published"> {
@@ -36,6 +44,8 @@ const Admin = () => {
   const [isFading, setIsFading] = useState(false);
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Original admin states
   const [localArticles, setLocalArticles] = useState<LocalArticle[]>([]);
@@ -45,6 +55,19 @@ const Admin = () => {
   const [showEditor, setShowEditor] = useState(false);
   const [activeTab, setActiveTab] = useState("articles");
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+  // Check for saved auth on mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem(AUTH_TOKEN_KEY);
+    const remembered = localStorage.getItem(AUTH_REMEMBER_KEY) === "true";
+    
+    if (savedToken && remembered) {
+      // Auto-login with saved token
+      setAuthToken(savedToken);
+      setIsAuthenticated(true);
+      setRememberMe(true);
+    }
+  }, []);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,36 +81,85 @@ const Admin = () => {
   const { toast } = useToast();
   const scrollToTop = useScrollToTop();
 
-  // Authentication handler
-  const handleLogin = (e: React.FormEvent) => {
+  // Authentication handler - uses API instead of hardcoded password
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (password === "windme2") {
-      setIsFading(true);
-      setTimeout(() => {
-        setIsAuthenticated(true);
-        setIsFading(false);
-      }, 400);
-      setAuthError("");
-    } else {
-      setAuthError("Invalid access code");
+    setIsLoggingIn(true);
+    setAuthError("");
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+      const response = await fetch(`${API_URL}/api/admin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Store JWT token if provided, otherwise use password
+        const token = data.accessToken || password;
+        setAuthToken(token);
+        
+        // Save to localStorage if "Remember me" is checked
+        if (rememberMe) {
+          localStorage.setItem(AUTH_TOKEN_KEY, token);
+          localStorage.setItem(AUTH_REMEMBER_KEY, "true");
+        }
+        
+        setIsFading(true);
+        setTimeout(() => {
+          setIsAuthenticated(true);
+          setIsFading(false);
+
+          toast({
+            title: "Authentication successful",
+            description: "Welcome to admin panel",
+          });
+        }, 400);
+        setAuthError("");
+        setPassword("");
+      } else {
+        setAuthError(data.error || "Invalid credentials");
+        setPassword("");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setAuthError("Connection failed. Please try again.");
       setPassword("");
+    } finally {
+      setIsLoggingIn(false);
     }
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    clearAuthToken();
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_REMEMBER_KEY);
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully",
+    });
   };
 
   // Handle page change with smooth scroll to top and loading animation
   const handlePageChange = (newPage: number) => {
     if (isLoadingPage) return; // Prevent multiple clicks
-    
+
     setIsLoadingPage(true);
     setCurrentPage(newPage);
-    
+
     // Smooth scroll to top of the page
     window.scrollTo({
       top: 0,
-      behavior: 'smooth'
+      behavior: "smooth",
     });
-    
+
     // Reset loading state after scroll completes
     setTimeout(() => {
       setIsLoadingPage(false);
@@ -279,7 +351,11 @@ const Admin = () => {
   // Show login form if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center p-4 transition-opacity duration-400 ${isFading ? 'opacity-0' : 'opacity-100'}`}> 
+      <div
+        className={`min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center p-4 transition-opacity duration-400 ${
+          isFading ? "opacity-0" : "opacity-100"
+        }`}
+      >
         <Helmet>
           <title>Admin Access - WindSpace</title>
           <meta name="description" content="Admin panel access" />
@@ -289,31 +365,63 @@ const Admin = () => {
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 shadow-lg">
               <Shield className="w-10 h-10 text-primary" />
             </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">Admin Access</CardTitle>
-            <p className="text-gray-600 mt-2">Only authorized users can access this section.</p>
-            <p className="text-xs text-gray-400 mt-1">If you are not sure, <a href="/" className="underline hover:text-primary">go back to homepage</a>.</p>
+            <CardTitle className="text-2xl font-bold tracking-tight">
+              Admin Access
+            </CardTitle>
+            <p className="text-gray-600 mt-2">
+              Only authorized users can access this section.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              If you are not sure,{" "}
+              <a href="/" className="underline hover:text-primary">
+                go back to homepage
+              </a>
+              .
+            </p>
           </CardHeader>
           <CardContent className="pt-2 pb-2">
             <form onSubmit={handleLogin} className="space-y-6">
-              <div className="mb-2 mt-4">
-                <Input
-                  type="password"
-                  placeholder="Access code"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full transition-all duration-300 ${authError ? 'border-red-500 animate-shake' : ''}`}
-                  autoFocus
-                />
+              <div className="space-y-4 mt-4">
+                <div>
+                  <Input
+                    type="password"
+                    placeholder="Admin access code"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full transition-all duration-300 ${
+                      authError ? "border-red-500 animate-shake" : ""
+                    }`}
+                    autoFocus
+                    disabled={isLoggingIn}
+                    required
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                    disabled={isLoggingIn}
+                  />
+                  <label htmlFor="rememberMe" className="text-sm text-gray-600 dark:text-gray-400">
+                    Remember me
+                  </label>
+                </div>
                 {authError && (
-                  <p className="text-sm text-red-600 mt-2 animate-fade-in">{authError}</p>
+                  <p className="text-sm text-red-600 animate-fade-in">
+                    {authError}
+                  </p>
                 )}
               </div>
               <Button
                 type="submit"
                 className="w-full bg-primary text-white font-semibold shadow hover:bg-primary/90 transition-all duration-200 mt-2"
+                disabled={isLoggingIn}
               >
                 <Lock className="w-4 h-4 mr-2" />
-                Access Admin Panel
+                {isLoggingIn ? "Authenticating..." : "Access Admin Panel"}
               </Button>
             </form>
           </CardContent>
@@ -337,17 +445,42 @@ const Admin = () => {
               variant={activeTab === "articles" ? "default" : "outline"}
               onClick={() => setActiveTab("articles")}
             >
+              <Edit className="w-4 h-4 mr-2" />
               Articles
             </Button>
+            <Button
+              variant={activeTab === "analytics" ? "default" : "outline"}
+              onClick={() => setActiveTab("analytics")}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </Button>
+            <Button
+              variant={activeTab === "comments" ? "default" : "outline"}
+              onClick={() => setActiveTab("comments")}
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Comments
+            </Button>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => setIsAuthenticated(false)}
+          <Button
+            variant="outline"
+            onClick={handleLogout}
             size="sm"
           >
             Sign Out
           </Button>
         </div>
+
+        {/* Analytics Tab */}
+        {activeTab === "analytics" && (
+          <AnalyticsDashboard />
+        )}
+
+        {/* Comments Tab */}
+        {activeTab === "comments" && (
+          <CommentModeration />
+        )}
 
         {/* Articles Tab */}
         {activeTab === "articles" && (

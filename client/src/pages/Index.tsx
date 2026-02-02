@@ -91,7 +91,9 @@ const Index = () => {
           setIsLoading(true);
           const searchResponse = await articleAPI.search(searchQuery);
           if (searchResponse && searchResponse.data) {
-            setSearchResults(searchResponse.data.map(article => convertArticle(article)));
+            setSearchResults(
+              searchResponse.data.map((article) => convertArticle(article))
+            );
           }
           setIsLoading(false);
         } catch (err) {

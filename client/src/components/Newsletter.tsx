@@ -1,11 +1,63 @@
+import { useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Mail } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Newsletter = () => {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Newsletter subscription logic would go here
+    
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+      const response = await fetch(`${API_URL}/api/newsletter/subscribe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success!",
+          description: data.message || "Successfully subscribed to newsletter",
+        });
+        setEmail("");
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to subscribe",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Newsletter subscription error:", error);
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -31,9 +83,18 @@ const Newsletter = () => {
               type="email"
               placeholder="Enter your email"
               className="flex-1 text-lg py-6"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isSubmitting}
+              required
             />
-            <Button type="submit" size="lg" className="text-lg py-6">
-              Subscribe
+            <Button 
+              type="submit" 
+              size="lg" 
+              className="text-lg py-6"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Subscribing..." : "Subscribe"}
             </Button>
           </form>
         </div>

@@ -59,7 +59,7 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50">
+    <nav className="bg-background border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -183,7 +183,7 @@ const Navbar = () => {
             <div className="flex flex-col space-y-3">
               <Link
                 to="/food"
-                className="py-2 px-4 hover:bg-gray-50 rounded-lg font-medium hover:text-blog-food"
+                className="py-2 px-4 hover:bg-accent rounded-lg font-medium hover:text-blog-food"
                 onClick={() => {
                   setIsMenuOpen(false);
                   handleNavClick();
@@ -193,7 +193,7 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/travel"
-                className="py-2 px-4 hover:bg-gray-50 rounded-lg font-medium hover:text-blog-travel"
+                className="py-2 px-4 hover:bg-accent rounded-lg font-medium hover:text-blog-travel"
                 onClick={() => {
                   setIsMenuOpen(false);
                   handleNavClick();
@@ -203,7 +203,7 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/lifestyle"
-                className="py-2 px-4 hover:bg-gray-50 rounded-lg font-medium hover:text-blog-lifestyle"
+                className="py-2 px-4 hover:bg-accent rounded-lg font-medium hover:text-blog-lifestyle"
                 onClick={() => {
                   setIsMenuOpen(false);
                   handleNavClick();
@@ -213,7 +213,7 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/technology"
-                className="py-2 px-4 hover:bg-gray-50 rounded-lg font-medium hover:text-blog-tech"
+                className="py-2 px-4 hover:bg-accent rounded-lg font-medium hover:text-blog-tech"
                 onClick={() => {
                   setIsMenuOpen(false);
                   handleNavClick();
@@ -223,7 +223,7 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/about"
-                className="py-2 px-4 hover:bg-gray-50 rounded-lg font-medium hover:text-primary"
+                className="py-2 px-4 hover:bg-accent rounded-lg font-medium hover:text-primary"
                 onClick={() => {
                   setIsMenuOpen(false);
                   handleNavClick();
@@ -233,7 +233,7 @@ const Navbar = () => {
               </Link>
               <Link
                 to="/contact"
-                className="py-2 px-4 hover:bg-gray-50 rounded-lg font-medium hover:text-primary"
+                className="py-2 px-4 hover:bg-accent rounded-lg font-medium hover:text-primary"
                 onClick={() => {
                   setIsMenuOpen(false);
                   handleNavClick();

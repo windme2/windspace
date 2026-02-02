@@ -38,7 +38,7 @@ const Contact = () => {
 
         <AnimatedSection delay={200}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {/* Left Side - Contact Information */}
+            {/* Left Side - Contact Information */}
             <div className="lg:col-span-1">
               <Card className="shadow-lg hover:shadow-xl transition-shadow h-full">
                 <CardContent className="p-8">
@@ -157,7 +157,7 @@ const Contact = () => {
               </Card>
             </div>
 
-          {/* Right Side - Map and Contact Form */}
+            {/* Right Side - Map and Contact Form */}
             <div className="lg:col-span-2 space-y-8">
               {/* Map Section */}
               <Card className="shadow-lg hover:shadow-xl transition-shadow">
@@ -273,7 +273,7 @@ const Contact = () => {
                 </CardContent>
               </Card>
             </div>
-        </div>
+          </div>
         </AnimatedSection>
 
         <ScrollToTop />

@@ -56,7 +56,7 @@ const About = () => {
                         <User className="h-5 w-5 text-gray-600" />
                       </div>
                       <span className="text-gray-700">
-                        Senior Inventory Management
+                        Inventory Officer (Operations)
                       </span>
                     </div>
 
@@ -65,7 +65,7 @@ const About = () => {
                     <div className="space-y-3 text-gray-700">
                       <p>
                         I have several years of experience in inventory
-                        management, focusing on process optimization and data
+                        operations, focusing on process optimization and data
                         accuracy. Currently, I am pursuing a Higher Vocational
                         Certificate (Year 2) in Information Technology, with
                         plans to continue my studies at the Bachelor’s level.

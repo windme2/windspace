@@ -3,6 +3,30 @@ import { Article, ApiResponse, PaginatedApiResponse } from "../types";
 // API Base URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
+// Simple auth token storage (in-memory)
+let authToken: string | null = null;
+
+export const setAuthToken = (token: string | null) => {
+  authToken = token;
+  if (token) {
+    sessionStorage.setItem('admin_token', token);
+  } else {
+    sessionStorage.removeItem('admin_token');
+  }
+};
+
+export const getAuthToken = (): string | null => {
+  if (!authToken) {
+    authToken = sessionStorage.getItem('admin_token');
+  }
+  return authToken;
+};
+
+export const clearAuthToken = () => {
+  authToken = null;
+  sessionStorage.removeItem('admin_token');
+};
+
 // Article creation interface
 export interface ArticleData {
   title: string;
@@ -48,11 +72,16 @@ export const apiCall = async <T>(
     },
   };
 
+  // Add auth token if available
+  const token = getAuthToken();
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
   const finalOptions = {
     ...defaultOptions,
     ...options,
     headers: {
       ...defaultOptions.headers,
+      ...authHeaders,
       ...options.headers,
     },
   };

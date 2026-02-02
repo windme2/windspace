@@ -1,0 +1,68 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Run every 6 hours to keep Supabase awake (4 times per day)
+    # Supabase free tier sleeps after 7 days of inactivity
+    # Adjust the cron expression below to change frequency:
+    # 
+    # Examples:
+    # - '0 */6 * * *'  = Every 6 hours (Recommended) ✅
+    # - '0 */12 * * *' = Every 12 hours (Sufficient) ⚠️
+    # - '0 */3 * * *'  = Every 3 hours (Too frequent) ❌
+    # - '0 0 * * *'    = Daily at midnight (Too infrequent) ❌
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+env:
+  API_URL: ${{ secrets.API_URL }}
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Keep-Alive Endpoint
+        run: |
+          echo "🏓 Pinging keep-alive endpoint..."
+          
+          # First, do a simple ping
+          PING_RESPONSE=$(curl -s -w "\n%{http_code}" "${{ env.API_URL }}/api/keepalive/ping" || echo "000")
+          PING_STATUS=$(echo "$PING_RESPONSE" | tail -n1)
+          PING_BODY=$(echo "$PING_RESPONSE" | head -n -1)
+          
+          echo "Ping response (HTTP $PING_STATUS): $PING_BODY"
+          
+          # Then, warm up the database
+          echo "🔥 Warming up database..."
+          WARM_RESPONSE=$(curl -s -w "\n%{http_code}" "${{ env.API_URL }}/api/keepalive/warm" || echo "000")
+          WARM_STATUS=$(echo "$WARM_RESPONSE" | tail -n1)
+          WARM_BODY=$(echo "$WARM_RESPONSE" | head -n -1)
+          
+          echo "Warm-up response (HTTP $WARM_STATUS): $WARM_BODY"
+          
+          # Check if successful
+          if [ "$WARM_STATUS" -eq 200 ]; then
+            echo "✅ Database is awake and responding!"
+          else
+            echo "⚠️ Database might be sleeping or unavailable (HTTP $WARM_STATUS)"
+            exit 1
+          fi
+
+      - name: Test Articles Endpoint
+        run: |
+          echo "📚 Testing articles endpoint..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" "${{ env.API_URL }}/api/articles?limit=1" || echo "000")
+          STATUS=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$STATUS" -eq 200 ]; then
+            echo "✅ Articles endpoint is working!"
+          else
+            echo "⚠️ Articles endpoint returned HTTP $STATUS"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Keep-Alive Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **API URL**: ${{ env.API_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: Completed" >> $GITHUB_STEP_SUMMARY

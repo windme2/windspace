@@ -3,7 +3,7 @@
 A personal blog platform sharing insights on **web development, technology, travel, food, and lifestyle**.  
 It reflects my journey as a developer and serves as a space to share stories, ideas, and lessons learned along the way.  
 
-> **🚀 [Live Demo](https://windspace-demo.vercel.app)** - *Coming Soon*
+> **🚀 [Live Demo](https://windspace.vercel.app)** - *Coming Soon*
 
 ---
 
@@ -79,9 +79,16 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-key (optional)
 ```env
 PORT=8080
 NODE_ENV=development
+
+# CORS - Comma-separated list of allowed origins
 CORS_ORIGIN=http://localhost:5173
-SUPABASE_URL=your-supabase-url (optional)
-SUPABASE_SERVICE_KEY=your-supabase-service-key (optional)
+
+# Admin Authentication - Set a strong password!
+ADMIN_PASSWORD=your_secure_password
+
+# Supabase Configuration
+SUPABASE_URL=your-supabase-url
+SUPABASE_SERVICE_KEY=your-supabase-service-key
 ```
 
 ### Start development server
@@ -101,6 +108,30 @@ npm run client:build # Build frontend only
 npm run server:build # Build backend only
 ```
 
+### 🧹 Clean Project
+```bash
+# Clean everything (recommended for troubleshooting)
+npm run clean:all
+
+# Clean specific parts
+npm run clean:modules  # Remove node_modules
+npm run clean:dist     # Remove build outputs
+npm run clean:cache    # Remove cache files
+
+# Platform-specific scripts
+.\clean.ps1            # Windows PowerShell
+./clean.sh             # Linux/Mac
+
+# See CLEAN_GUIDE.md for more details
+```
+
+---
+
+## 📚 Additional Documentation
+
+- [📋 Cronjob Setup Guide](CRONJOB_SETUP.md) - Keep Supabase database awake
+- [🧹 Clean Project Guide](CLEAN_GUIDE.md) - Clean and troubleshoot project
+
 ---
 
 ## 🔧 Configuration
@@ -115,6 +146,17 @@ npm run server:build # Build backend only
 
 ---
 
+## 🔐 Security Features
+
+- ✅ **Rate Limiting:** Protection against brute-force attacks and API abuse
+- ✅ **Authentication:** Secure admin endpoints with password-based auth
+- ✅ **CORS Protection:** Configurable allowed origins
+- ✅ **Input Validation:** Sanitized user inputs on all endpoints
+- ✅ **Secure Headers:** Helmet.js for security headers
+- ✅ **Safe Error Messages:** No sensitive data exposure in production
+
+---
+
 ## 🌐 API Endpoints
 
 ```bash
@@ -122,17 +164,31 @@ npm run server:build # Build backend only
 GET /api/articles              # Get all published articles
 GET /api/articles?category=X   # Get articles by category
 GET /api/articles/:slug        # Get single article by slug
-POST /api/articles             # Create new article (admin)
-PUT /api/articles/:id          # Update article (admin)
-DELETE /api/articles/:id       # Delete article (admin)
+POST /api/articles             # Create new article (requires auth)
+PUT /api/articles/:id          # Update article (requires auth)
+DELETE /api/articles/:id       # Delete article (requires auth)
 
 # Categories  
 GET /api/categories            # Get all categories
 GET /api/categories/:slug      # Get category by slug
+POST /api/categories           # Create category (requires auth)
+PUT /api/categories/:id        # Update category (requires auth)
+DELETE /api/categories/:id     # Delete category (requires auth)
+
+# Admin Authentication
+POST /api/admin/login          # Admin login (rate-limited)
+
+# Keep-Alive (Prevents Supabase sleep)
+GET /api/keepalive             # Keep database awake
+GET /api/keepalive/ping        # Simple server ping
+GET /api/keepalive/warm        # Full database warm-up
 
 # Health Check
 GET /health                    # Server health status
 ```
+
+### API Documentation
+📚 Full API documentation available at `http://localhost:8080/api-docs` when server is running.
 
 ---
 

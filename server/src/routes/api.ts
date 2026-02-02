@@ -1,7 +1,87 @@
 import { Router } from "express";
 import { db } from "../services/database";
+import {
+  loginRateLimiter,
+  writeRateLimiter,
+  requireAuth,
+  validateArticleInput,
+  validateCategoryInput,
+  sanitizeError,
+} from "../middleware/security";
+import { generateTokenPair, verifyRefreshToken } from "../services/auth";
 
 const router = Router();
+
+// Admin Authentication Endpoint - with JWT
+router.post("/admin/login", loginRateLimiter, (req, res) => {
+  try {
+    const { password } = req.body;
+
+    // Get admin password from environment variables
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    // Validate environment variable is set
+    if (!adminPassword) {
+      console.error("❌ ADMIN_PASSWORD not set in environment");
+      return res.status(500).json({ success: false, error: "Server configuration error" });
+    }
+
+    // Validate password
+    if (password === adminPassword) {
+      // Generate JWT tokens
+      const tokens = generateTokenPair({
+        userId: 'admin',
+        username: 'admin',
+        role: 'admin',
+      });
+
+      return res.json({ 
+        success: true, 
+        message: "Authentication successful",
+        ...tokens,
+      });
+    }
+
+    // Invalid password
+    return res.status(401).json({ success: false, error: "Invalid credentials" });
+  } catch (error) {
+    console.error("Error in admin login:", error);
+    return res.status(500).json({ success: false, error: "Authentication failed" });
+  }
+});
+
+// Refresh token endpoint
+router.post("/admin/refresh", (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: "Refresh token is required" });
+    }
+
+    // Verify refresh token
+    const decoded = verifyRefreshToken(refreshToken);
+    
+    if (!decoded) {
+      return res.status(401).json({ error: "Invalid or expired refresh token" });
+    }
+
+    // Generate new token pair
+    const tokens = generateTokenPair({
+      userId: decoded.userId,
+      username: decoded.username,
+      role: decoded.role,
+    });
+
+    return res.json({
+      success: true,
+      ...tokens,
+    });
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    return res.status(500).json({ error: "Failed to refresh token" });
+  }
+});
 
 // Health check
 router.get("/health", (req, res) => {
@@ -37,7 +117,48 @@ router.get("/api", (req, res) => {
   });
 });
 
-// Articles routes
+/**
+ * @swagger
+ * /api/articles:
+ *   get:
+ *     summary: Get all articles
+ *     tags: [Articles]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by category slug
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in title, excerpt, content
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *       - in: query
+ *         name: published
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *     responses:
+ *       200:
+ *         description: List of articles
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedArticles'
+ *       500:
+ *         description: Server error
+ */
 router.get("/articles", async (req, res) => {
   try {
     const { category, limit, offset, published, search } = req.query;
@@ -98,6 +219,29 @@ router.get("/articles", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/articles/{slug}:
+ *   get:
+ *     summary: Get article by slug
+ *     tags: [Articles]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Article slug
+ *     responses:
+ *       200:
+ *         description: Article details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Article'
+ *       404:
+ *         description: Article not found
+ */
 router.get("/articles/:slug", async (req, res) => {
   const { slug } = req.params;
 
@@ -140,7 +284,8 @@ router.get("/tags", async (req, res) => {
   }
 });
 
-router.post("/articles", async (req, res) => {
+// Protected write endpoints - require authentication
+router.post("/articles", requireAuth, writeRateLimiter, validateArticleInput, async (req, res) => {
   try {
     const { 
       title, 
@@ -153,10 +298,6 @@ router.post("/articles", async (req, res) => {
       author_avatar,
       tags
     } = req.body;
-
-    if (!title || !content) {
-      return res.status(400).json({ error: "Title and content are required" });
-    }
 
     // Generate slug from title
     const slug = title
@@ -181,11 +322,11 @@ router.post("/articles", async (req, res) => {
     return res.status(201).json({ data: newArticle });
   } catch (error) {
     console.error("Error creating article:", error);
-    return res.status(500).json({ error: "Failed to create article" });
+    return res.status(500).json({ error: sanitizeError(error) });
   }
 });
 
-router.put("/articles/:id", async (req, res) => {
+router.put("/articles/:id", requireAuth, writeRateLimiter, validateArticleInput, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const updates = req.body;
@@ -198,11 +339,11 @@ router.put("/articles/:id", async (req, res) => {
     return res.json({ data: updatedArticle });
   } catch (error) {
     console.error("Error updating article:", error);
-    return res.status(500).json({ error: "Failed to update article" });
+    return res.status(500).json({ error: sanitizeError(error) });
   }
 });
 
-router.delete("/articles/:id", async (req, res) => {
+router.delete("/articles/:id", requireAuth, writeRateLimiter, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
 
@@ -214,7 +355,7 @@ router.delete("/articles/:id", async (req, res) => {
     return res.json({ message: "Article deleted successfully" });
   } catch (error) {
     console.error("Error deleting article:", error);
-    return res.status(500).json({ error: "Failed to delete article" });
+    return res.status(500).json({ error: sanitizeError(error) });
   }
 });
 
@@ -240,13 +381,9 @@ router.get("/categories/:slug", async (req, res) => {
   }
 });
 
-router.post("/categories", async (req, res) => {
+router.post("/categories", requireAuth, writeRateLimiter, validateCategoryInput, async (req, res) => {
   try {
     const { name, description } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: "Name is required" });
-    }
 
     // Generate slug from name
     const slug = name
@@ -264,11 +401,11 @@ router.post("/categories", async (req, res) => {
     return res.status(201).json({ data: newCategory });
   } catch (error) {
     console.error("Error creating category:", error);
-    return res.status(500).json({ error: "Failed to create category" });
+    return res.status(500).json({ error: sanitizeError(error) });
   }
 });
 
-router.put("/categories/:id", async (req, res) => {
+router.put("/categories/:id", requireAuth, writeRateLimiter, validateCategoryInput, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const updates = req.body;
@@ -281,11 +418,11 @@ router.put("/categories/:id", async (req, res) => {
     return res.json({ data: updatedCategory });
   } catch (error) {
     console.error("Error updating category:", error);
-    return res.status(500).json({ error: "Failed to update category" });
+    return res.status(500).json({ error: sanitizeError(error) });
   }
 });
 
-router.delete("/categories/:id", async (req, res) => {
+router.delete("/categories/:id", requireAuth, writeRateLimiter, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
 
@@ -297,7 +434,7 @@ router.delete("/categories/:id", async (req, res) => {
     return res.json({ message: "Category deleted successfully" });
   } catch (error) {
     console.error("Error deleting category:", error);
-    return res.status(500).json({ error: "Failed to delete category" });
+    return res.status(500).json({ error: sanitizeError(error) });
   }
 });
 
