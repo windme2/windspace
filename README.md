@@ -13,7 +13,7 @@ It reflects my journey as a developer and serves as a space to share stories, id
 - **Backend:** Node.js (Express), TypeScript  
 - **Database:** Supabase (PostgreSQL)  
 - **State Management:** React Hooks  
-- **Deployment:** Vercel (Frontend), Railway (Backend)  
+- **Deployment:** Vercel (Frontend), Render (Backend)  
 - **Other Tools:** Git, Postman, ESLint, Prettier
 
 ---
