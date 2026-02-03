@@ -27,9 +27,9 @@ if (SENTRY_DSN && process.env.NODE_ENV === 'production') {
     },
   });
 
-  console.log('✅ Sentry initialized');
-} else {
-  console.log('ℹ️  Sentry not initialized (missing DSN or not in production)');
+  if (process.env.NODE_ENV !== "production") {
+    console.log('✅ Sentry initialized');
+  }
 }
 
 export default Sentry;

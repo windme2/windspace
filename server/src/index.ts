@@ -106,12 +106,24 @@ app.use(
 app.use(express.json({ limit: "2mb" })); // Reduced from 50mb
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
-// Health check endpoint
+// Health check endpoint - lightweight, no database query
 app.get("/health", (req, res) => {
+  const uptime = process.uptime();
+  const memoryUsage = process.memoryUsage();
+  
   res.json({
     status: "OK",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
+    uptime: {
+      seconds: Math.floor(uptime),
+      formatted: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
+    },
+    memory: {
+      heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+      heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+      rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+    },
   });
 });
 

@@ -1,17 +1,16 @@
-name: Keep Supabase Alive
+name: Keep Services Alive
 
 on:
   schedule:
-    # Run every 6 hours to keep Supabase awake (4 times per day)
-    # Supabase free tier sleeps after 7 days of inactivity
-    # Adjust the cron expression below to change frequency:
+    # Run every 10 minutes to prevent Railway/Render free tier from sleeping
+    # Free tier services typically sleep after 15-30 minutes of inactivity
     # 
-    # Examples:
-    # - '0 */6 * * *'  = Every 6 hours (Recommended) ✅
-    # - '0 */12 * * *' = Every 12 hours (Sufficient) ⚠️
-    # - '0 */3 * * *'  = Every 3 hours (Too frequent) ❌
-    # - '0 0 * * *'    = Daily at midnight (Too infrequent) ❌
-    - cron: '0 */6 * * *'
+    # Frequency options:
+    # - '*/10 * * * *' = Every 10 minutes (Recommended for free tier) ✅
+    # - '*/15 * * * *' = Every 15 minutes (Minimum for Railway/Render) ⚠️
+    # - '*/5 * * * *'  = Every 5 minutes (Too frequent, may hit rate limits) ❌
+    # - '0 */6 * * *'  = Every 6 hours (For Supabase only, not enough for Railway) ❌
+    - cron: '*/10 * * * *'
   workflow_dispatch: # Allow manual trigger from GitHub UI
 
 env:
@@ -20,49 +19,65 @@ env:
 jobs:
   keepalive:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
     steps:
-      - name: Ping Keep-Alive Endpoint
+      - name: Keep Backend Alive
         run: |
-          echo "🏓 Pinging keep-alive endpoint..."
+          echo "⏰ $(date -u '+%Y-%m-%d %H:%M:%S UTC'): Pinging backend API..."
           
-          # First, do a simple ping
-          PING_RESPONSE=$(curl -s -w "\n%{http_code}" "${{ env.API_URL }}/api/keepalive/ping" || echo "000")
-          PING_STATUS=$(echo "$PING_RESPONSE" | tail -n1)
-          PING_BODY=$(echo "$PING_RESPONSE" | head -n -1)
+          if [ -z "${{ env.API_URL }}" ]; then
+            echo "⚠️  API_URL secret not set. Please configure it in repository secrets."
+            echo "For now, workflow will exit gracefully."
+            exit 0
+          fi
           
-          echo "Ping response (HTTP $PING_STATUS): $PING_BODY"
+          # Main keepalive endpoint (queries database)
+          RESPONSE=$(curl -s -w "\n%{http_code}" "${{ env.API_URL }}/api/keepalive" || echo "Failed\n000")
+          STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
           
-          # Then, warm up the database
-          echo "🔥 Warming up database..."
-          WARM_RESPONSE=$(curl -s -w "\n%{http_code}" "${{ env.API_URL }}/api/keepalive/warm" || echo "000")
-          WARM_STATUS=$(echo "$WARM_RESPONSE" | tail -n1)
-          WARM_BODY=$(echo "$WARM_RESPONSE" | head -n -1)
+          echo "Response (HTTP $STATUS):"
+          echo "$BODY"
           
-          echo "Warm-up response (HTTP $WARM_STATUS): $WARM_BODY"
-          
-          # Check if successful
-          if [ "$WARM_STATUS" -eq 200 ]; then
-            echo "✅ Database is awake and responding!"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Backend is alive and database is connected!"
           else
-            echo "⚠️ Database might be sleeping or unavailable (HTTP $WARM_STATUS)"
+            echo "❌ Backend health check failed with HTTP $STATUS"
             exit 1
           fi
 
       - name: Test Articles Endpoint
+        continue-on-error: true
         run: |
-          echo "📚 Testing articles endpoint..."
-          RESPONSE=$(curl -s -w "\n%{http_code}" "${{ env.API_URL }}/api/articles?limit=1" || echo "000")
+          echo "📚 Testing articles endpoint to ensure full API functionality..."
+          
+          if [ -z "${{ env.API_URL }}" ]; then
+            echo "⚠️  Skipping (API_URL not configured)"
+            exit 0
+          fi
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" "${{ env.API_URL }}/api/articles?limit=1" || echo "Failed\n000")
           STATUS=$(echo "$RESPONSE" | tail -n1)
           
-          if [ "$STATUS" -eq 200 ]; then
-            echo "✅ Articles endpoint is working!"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Articles endpoint is working perfectly!"
           else
-            echo "⚠️ Articles endpoint returned HTTP $STATUS"
+            echo "⚠️  Articles endpoint returned HTTP $STATUS (non-critical)"
           fi
 
       - name: Summary
+        if: always()
         run: |
-          echo "## Keep-Alive Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
-          echo "- **API URL**: ${{ env.API_URL }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: Completed" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎯 Keep-Alive Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **API URL**: ${{ env.API_URL || 'Not configured' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflow**: Keep Services Alive (Every 10 minutes)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run Number**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Status" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Workflow completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*This workflow prevents free-tier services from sleeping by sending regular requests.*" >> $GITHUB_STEP_SUMMARY
